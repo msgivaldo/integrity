@@ -4,7 +4,7 @@ import android.content.Context
 import dev.givaldo.integrity.Integrity
 import dev.givaldo.integrity.SecurityCheck
 import dev.givaldo.integrity.ValidationType
-import dev.givaldo.integrity.util.checkIsAnyInstalled
+import dev.givaldo.integrity.common.checkIsAnyInstalled
 
 class VirtualizationAppsChecker(
     private val context: Context = Integrity.Companion.instance.context

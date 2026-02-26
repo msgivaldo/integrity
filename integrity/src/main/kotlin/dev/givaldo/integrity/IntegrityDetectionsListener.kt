@@ -1,5 +1,5 @@
 package dev.givaldo.integrity
 
-interface IntegrityDetectionsListener {
-    fun onDetected(result: IntegrityResult)
+fun interface IntegrityDetectionsListener {
+    fun onEvent(result: Result<IntegrityResult>)
 }

@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class MainViewModel : ViewModel() {
     private var validations = mutableListOf<IntegrityResult>()
-    private val _resultState = MutableStateFlow<IntegrityCheckState>(IntegrityCheckState.Loading)
+    private val _resultState = MutableStateFlow<IntegrityCheckState>(IntegrityCheckState.Idle)
 
     @OptIn(FlowPreview::class)
     val resultState: StateFlow<IntegrityCheckState> = _resultState
@@ -21,12 +21,19 @@ class MainViewModel : ViewModel() {
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = IntegrityCheckState.Loading,
+            initialValue = IntegrityCheckState.Idle,
         )
 
 
-    fun onResult(result: IntegrityResult) {
-        validations.add(result)
+    fun onResult(result: Result<IntegrityResult>) {
+        result.onFailure {
+            viewModelScope.launch {
+                _resultState.value = IntegrityCheckState.Failure(it)
+            }
+        }.onSuccess { it ->
+            validations.add(it)
+        }
+
 
         viewModelScope.launch {
             _resultState.emit(IntegrityCheckState.Success(validations))
@@ -42,6 +49,7 @@ class MainViewModel : ViewModel() {
 
 sealed interface IntegrityCheckState {
     object Loading : IntegrityCheckState
+    object Idle : IntegrityCheckState
     data class Success(val result: List<IntegrityResult>) : IntegrityCheckState
-    data class Failure(val exception: Exception) : IntegrityCheckState
+    data class Failure(val error: Throwable) : IntegrityCheckState
 }

@@ -11,7 +11,6 @@ internal class BackgroundChecker(
     private val lifecycleOwner: LifecycleOwner = ProcessLifecycleOwner.get(),
     private val logger: IntegrityLogger = IntegrityLogger.instance,
 ) {
-
     companion object {
         private var observer: DefaultLifecycleObserver? = null
         internal val instance by lazy { BackgroundChecker() }
@@ -40,14 +39,5 @@ internal class BackgroundChecker(
         val observer = observer ?: return
         lifecycleOwner.lifecycle.removeObserver(observer)
         BackgroundChecker.observer = null
-    }
-}
-
-private class IntegrityLifecycleObserver(
-    private val onEvent: () -> Unit,
-) : DefaultLifecycleObserver {
-    override fun onResume(owner: LifecycleOwner) {
-        onEvent()
-        super.onResume(owner)
     }
 }

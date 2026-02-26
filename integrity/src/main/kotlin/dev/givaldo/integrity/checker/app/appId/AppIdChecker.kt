@@ -19,15 +19,18 @@ class AppIdChecker(
         //extract app id from configuration.apiKey
         val expectedAppId = configuration.appId
 
-        val appId = context.packageName
         if (expectedAppId.isNullOrBlank()) {
             return SecurityCheck.Error(RuntimeException("App id not provided"))
         }
 
+        val appId = context.packageName
         return if (expectedAppId == appId) {
             SecurityCheck.Secure
         } else {
-            SecurityCheck.Flagged(code = AppIdNotMatching.code, message = AppIdNotMatching.message)
+            SecurityCheck.Flagged(
+                code = AppIdNotMatching.code,
+                message = "${AppIdNotMatching.message} $expectedAppId != $appId"
+            )
         }
     }
 }

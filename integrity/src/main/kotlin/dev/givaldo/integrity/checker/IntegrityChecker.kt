@@ -11,7 +11,7 @@ internal interface IntegrityChecker {
 
     suspend fun checkResult(): IntegrityResult {
         return IntegrityResult(
-            validationType = identifier,
+            type = identifier,
             result = check()
         )
     }

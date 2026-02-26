@@ -9,8 +9,7 @@ data class IntegrityConfiguration internal constructor(
     val apiKey: String,
     val appId: String?,
     val appSignature: String?,
-    val isLoggingEnabled: Boolean = false,
-    val enableBackgroundChecks: Boolean = false,
+    val logEnabled: Boolean,
 ) {
     fun formattedString(): String {
         return """
@@ -21,8 +20,7 @@ data class IntegrityConfiguration internal constructor(
         | userId                    |${userId.toString().padEnd(30)}|
         | appId                     |${appId.toString().padEnd(30)}|
         | appSignature              |${appSignature.toString().padEnd(30).take(30)}|
-        | isLoggingEnabled          |${isLoggingEnabled.toString().padEnd(30)}|
-        | enableBackgroundChecks    |${enableBackgroundChecks.toString().padEnd(30)}|
+        | logEnabled                |${logEnabled.toString().padEnd(30)}|
         | ------------------------  | ---------------------------- |        
     """.trimIndent()
     }

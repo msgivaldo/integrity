@@ -10,13 +10,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -62,7 +61,15 @@ class MainActivity : ComponentActivity() {
                     }
                 ) { innerPadding ->
                     val state by viewModel.resultState.collectAsStateWithLifecycle()
-                    HomeScreen(modifier = Modifier.padding(innerPadding), state)
+                    HomeScreen(
+                        modifier = Modifier.padding(innerPadding),
+                        state = state,
+                        onStartDetectionClick = {
+                            Integrity.instance.startDetections {
+                                viewModel.onResult(it)
+                            }
+                        }
+                    )
                 }
             }
 
@@ -75,9 +82,10 @@ class MainActivity : ComponentActivity() {
 fun HomeScreen(
     modifier: Modifier,
     state: IntegrityCheckState,
+    onStartDetectionClick: () -> Unit
 ) {
     when (state) {
-        is IntegrityCheckState.Failure -> Text(text = state.exception.message.toString())
+        is IntegrityCheckState.Failure -> Text(text = state.error.message.toString())
         is IntegrityCheckState.Loading -> Box(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -88,6 +96,14 @@ fun HomeScreen(
                 modifier = modifier,
                 result = state.result
             )
+        }
+
+        is IntegrityCheckState.Idle -> {
+            Box(modifier) {
+                Button(onClick = onStartDetectionClick) {
+                    Text("Start detections")
+                }
+            }
         }
     }
 }
@@ -105,8 +121,8 @@ fun ValidationsResultList(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(items = result.sortedBy { it.validationType }) { item ->
-            SecurityCheckItem(title = item.validationType.name, state = item.result)
+        items(items = result) { item ->
+            SecurityCheckItem(title = item.type.description, state = item.result)
         }
     }
 }

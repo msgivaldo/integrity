@@ -1,7 +1,7 @@
 package dev.givaldo.integrity
 
 data class IntegrityResult(
-    val validationType: ValidationType,
+    val type: ValidationType,
     val result: SecurityCheck
 )
 

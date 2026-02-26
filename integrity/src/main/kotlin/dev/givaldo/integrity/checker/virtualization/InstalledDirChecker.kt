@@ -4,6 +4,7 @@ import android.content.Context
 import dev.givaldo.integrity.Integrity
 import dev.givaldo.integrity.SecurityCheck
 import dev.givaldo.integrity.ValidationType
+import dev.givaldo.integrity.checker.virtualization.VirtualizationFlagReason.*
 
 internal class InstalledDirChecker(
     private val context: Context = Integrity.Companion.instance.context
@@ -12,20 +13,21 @@ internal class InstalledDirChecker(
 
     override suspend fun check(): SecurityCheck {
         val result = checkVirtualPath(context)
-        return if (result) {
+        return if (result != null) {
             SecurityCheck.Flagged(
-                code = VirtualizationFlagReason.InvalidInstallationDirectory.code,
-                message = VirtualizationFlagReason.InvalidInstallationDirectory.message
+                code = InvalidInstallationDirectory.code,
+                message = "${InvalidInstallationDirectory.message}: $result"
             )
         } else {
             SecurityCheck.Secure
         }
     }
 
-    private fun checkVirtualPath(context: Context): Boolean {
+    private fun checkVirtualPath(context: Context): String? {
         val dataDir = context.applicationInfo.dataDir
-        return dataDir.contains("virtual") ||
-                dataDir.contains("parallel") ||
-                !dataDir.contains(context.packageName)
+        if (dataDir.contains("virtual")) return "virtual"
+        if (dataDir.contains("parallel")) return "parallel"
+        if (!dataDir.contains(context.packageName)) return "data dir does not contain package name"
+        return null
     }
 }

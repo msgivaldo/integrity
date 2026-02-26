@@ -1,78 +1,67 @@
 package dev.givaldo.integrity
 
 import android.content.Context
+import dev.givaldo.integrity.analyzer.IntegrityAnalyzer
 import dev.givaldo.integrity.analyzer.IntegrityAnalyzerImpl
 import dev.givaldo.integrity.background.BackgroundChecker
 import dev.givaldo.integrity.checker.IntegrityCheckerRegistry
-import dev.givaldo.integrity.checker.app.appId.AppIdChecker
 import dev.givaldo.integrity.checker.app.getAppCheckers
-import dev.givaldo.integrity.checker.app.signing.AppSigningChecker
-import dev.givaldo.integrity.checker.device.apps.CloningAppsChecker
-import dev.givaldo.integrity.checker.device.developer.AdbEnabledChecker
-import dev.givaldo.integrity.checker.device.developer.DeveloperModeChecker
-import dev.givaldo.integrity.checker.device.developer.PackageVerifyEnabledChecker
-import dev.givaldo.integrity.checker.device.emulator.EmulatorChecker
 import dev.givaldo.integrity.checker.device.getDeviceCheckers
-import dev.givaldo.integrity.checker.device.root.RootAppsChecker
-import dev.givaldo.integrity.checker.device.root.RootedDeviceChecker
 import dev.givaldo.integrity.checker.virtualization.getVirtualizationCheckers
 import dev.givaldo.integrity.configuration.IntegrityConfiguration
+import dev.givaldo.integrity.configuration.IntegrityConfigurationBuilder
+import dev.givaldo.integrity.configuration.buildConfiguration
 import dev.givaldo.integrity.logger.IntegrityLogger
 
-class Integrity private constructor() {
+class Integrity internal constructor() {
 
-    @Volatile
     internal lateinit var context: Context
     internal lateinit var configuration: IntegrityConfiguration
 
     companion object {
+        @JvmStatic
         val instance: Integrity by lazy { Integrity() }
     }
 
+    /**
+     * Initializes the Integrity library.
+     * Call this in your Application class.
+     */
+    @JvmOverloads
     fun init(
         context: Context,
-        configuration: IntegrityConfiguration,
-    ): Integrity {
-        this.configuration = configuration
-        this.context = context.applicationContext
-        IntegrityLogger.instance.debug("configuration provided:\n${configuration.formattedString()}")
-
+        apiKey: String,
+        config: IntegrityConfigurationBuilder.() -> Unit = {},
+    ) {
+        this.configuration = buildConfiguration(apiKey = apiKey, block = config)
+        this.context = context
+        if (::context.isInitialized) {
+            IntegrityLogger.instance.debug("Integrity already initialized. Skipping.")
+        }
         if (configuration.apiKey.isBlank()) {
             throw IntegrityException.InvalidConfiguration("apiKey not provided")
         }
-
-        return this.apply {
-            IntegrityLogger.instance.debug("Integrity initialized")
-        }
+        this.context = context.applicationContext
+        IntegrityLogger.instance.debug("Integrity initialized with config: ${configuration.formattedString()}")
     }
 
-    fun startDetections(event: (IntegrityResult) -> Unit) {
-        startDetections(object : IntegrityDetectionsListener {
-            override fun onDetected(result: IntegrityResult) {
-                event(result)
-            }
-        })
+    /**
+     * Main entry point for starting detections.
+     */
+    fun startDetections(listener: IntegrityDetectionsListener) {
+        val analyzer = IntegrityAnalyzerImpl(createCheckerRegistry(configuration))
+        analyzer.execute(listener)
     }
 
-
-    //Jvm compatibility
-    fun startDetections(
-        detectionsListener: IntegrityDetectionsListener
+    fun toggleBackgroundDetections(
+        analyzer: IntegrityAnalyzer,
+        enabled: Boolean,
+        listener: IntegrityDetectionsListener
     ) {
-        if (!::context.isInitialized) {
-            throw IntegrityException.NotInitialized
-        }
-
-        val analyzer = IntegrityAnalyzerImpl(
-            configuration = configuration,
-            checkerRegistry = createCheckerRegistry(configuration)
-        )
-        analyzer.execute(detectionsListener)
-
-        if (configuration.enableBackgroundChecks) {
+        if (enabled) {
             BackgroundChecker.instance.start(
                 analyzer = analyzer,
-                detectionsListener = detectionsListener,
+                detectionsListener = listener,
             )
         } else {
             BackgroundChecker.instance.stop()
@@ -80,7 +69,7 @@ class Integrity private constructor() {
     }
 
     private fun createCheckerRegistry(configuration: IntegrityConfiguration): IntegrityCheckerRegistry {
-        return IntegrityCheckerRegistry().apply {
+        return IntegrityCheckerRegistry.instance.apply {
             register {
                 buildList {
                     addAll(getVirtualizationCheckers())
@@ -88,6 +77,7 @@ class Integrity private constructor() {
                     addAll(getAppCheckers(configuration))
                 }
             }
+            logRegisteredValidators()
         }
     }
 }

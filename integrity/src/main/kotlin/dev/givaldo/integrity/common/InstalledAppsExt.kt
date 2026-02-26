@@ -1,4 +1,4 @@
-package dev.givaldo.integrity.util
+package dev.givaldo.integrity.common
 
 import android.content.Context
 import android.content.pm.PackageManager
