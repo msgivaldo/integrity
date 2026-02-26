@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package dev.givaldo.integrity
 
 import android.content.Context
@@ -17,6 +19,7 @@ class Integrity internal constructor() {
 
     internal lateinit var context: Context
     internal lateinit var configuration: IntegrityConfiguration
+    private lateinit var analyzer: IntegrityAnalyzer
 
     companion object {
         @JvmStatic
@@ -33,23 +36,23 @@ class Integrity internal constructor() {
         apiKey: String,
         config: IntegrityConfigurationBuilder.() -> Unit = {},
     ) {
-        this.configuration = buildConfiguration(apiKey = apiKey, block = config)
-        this.context = context
         if (::context.isInitialized) {
             IntegrityLogger.instance.debug("Integrity already initialized. Skipping.")
         }
+        this.configuration = buildConfiguration(apiKey = apiKey, block = config)
         if (configuration.apiKey.isBlank()) {
             throw IntegrityException.InvalidConfiguration("apiKey not provided")
         }
-        this.context = context.applicationContext
+
         IntegrityLogger.instance.debug("Integrity initialized with config: ${configuration.formattedString()}")
+        this.context = context.applicationContext
+        this.analyzer = IntegrityAnalyzerImpl(createCheckerRegistry(configuration))
     }
 
     /**
      * Main entry point for starting detections.
      */
     fun startDetections(listener: IntegrityDetectionsListener) {
-        val analyzer = IntegrityAnalyzerImpl(createCheckerRegistry(configuration))
         analyzer.execute(listener)
     }
 
