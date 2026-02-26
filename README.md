@@ -33,14 +33,10 @@ dependencies {
 The library uses Android Startup for automatic initialization, but you can configure it via IntegrityInitializer:
 
 ```kotlin
-val configuration = buildConfiguration("your-api-key") {
-    enableLogging(true)
-    enableBackgroundChecks(true)
-    setAppId("your.package.name")
-    setAppSignature("YOUR_SHA256_HEX_SIGNATURE")
+ntegrity.instance.init(context, "api-key") {
+    logEnabled = true
+    appId = "dev.givaldo.app_protected"
 }
-
-Integrity.instance.init(context, configuration)
 ```
 
 ### 2. Running Detections
