@@ -1,7 +1,7 @@
-# Android Integrity SDK
+# Android Integrity
 
-## 1. Objetivo da solução
-Detectar sinais de comprometimento no ambiente Android
+## 1. Objetivo
+Criação de um detetor de sinais de anomalias ou comprometimento no ambiente Android.
 
 **Escopo implementado:**
 Para realizar as detecções, foram criados as seguintes verificações:
