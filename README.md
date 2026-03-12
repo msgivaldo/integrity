@@ -2,6 +2,14 @@
 
 Biblioteca Android para **análise de integridade do ambiente de execução**. O objetivo do projeto é oferecer uma API simples para detectar sinais de risco, como root, emulador, virtualização, configurações de desenvolvedor inseguras e adulteração da assinatura/pacote do app.
 
+## Tecnologias utilizadas
+
+- Kotlin
+- Coroutines
+- AndroidX Startup
+- JNI/C (CMake)
+- Gradle Kotlin DSL
+
 ## Visão geral do projeto
 
 Este repositório possui dois módulos:
@@ -71,64 +79,93 @@ Para checagens sensíveis (ex.: root e virtualização), o projeto combina Kotli
 - **Builder para configuração**: `IntegrityConfigurationBuilder` centraliza parâmetros e evita construtores complexos.
 - **Organização por pacotes de domínio**: reduz “classes utilitárias gigantes” e aumenta navegabilidade.
 
-## Diagrama de pacotes e comunicação entre módulos
+## Diagrama de classes
 
 ```mermaid
-flowchart LR
-    subgraph APP[":app (sample)"]
-        A1[IntegrityInitializer]
-        A2[MainViewModel]
-    end
+classDiagram
+direction TB
+    class Integrity {
+	    +init(context, apiKey, config)
+	    +startDetections(listener)
+	    -createCheckerRegistry(configuration)
+    }
 
-    subgraph CORE[":integrity (library)"]
-        I[Integrity]
-        C[configuration]
-        R[checker/IntegrityCheckerRegistry]
-        AN[analyzer/IntegrityAnalyzerImpl]
+    class IntegrityAnalyzer {
+	    +execute(listener)
+    }
 
-        subgraph D[checker.device]
-            D1[AdbEnabledChecker]
-            D2[DeveloperModeChecker]
-            D3[EmulatorChecker]
-            D4[RootedDeviceChecker]
-            D5[RootAppsChecker]
-            D6[CloningAppsChecker]
-        end
+    class IntegrityAnalyzerImpl {
+	    -checkerRegistry: IntegrityCheckerRegistry
+	    +execute(listener)
+    }
 
-        subgraph AP[checker.app]
-            AP1[AppIdChecker]
-            AP2[AppSigningChecker]
-        end
+    class IntegrityCheckerRegistry {
+	    +checkers: Set~IntegrityChecker~
+	    +register(factory)
+    }
 
-        subgraph V[checker.virtualization]
-            V1[VirtualizationAppsChecker]
-            V2[InstalledDirChecker]
-            V3[VirtualLibraryChecker]
-        end
+    class IntegrityChecker {
+	    +identifier: ValidationType
+	    +check()
+	    +checkResult()
+    }
 
-        NATIVE[(cpp JNI)]
-        RES[IntegrityResult / SecurityCheck]
-        LOG[logger/IntegrityLogger]
-    end
+    class DeviceIntegrityChecker {
+    }
 
-    A1 --> I
-    A2 --> I
-    I --> C
-    I --> R
-    I --> AN
-    R --> D
-    R --> AP
-    R --> V
-    AN --> D
-    AN --> AP
-    AN --> V
-    D4 --> NATIVE
-    V3 --> NATIVE
-    D --> RES
-    AP --> RES
-    V --> RES
-    AN --> LOG
-    I --> LOG
+    class AppIntegrityChecker {
+    }
+
+    class VirtualizationIntegrityChecker {
+    }
+
+    class RootedDeviceChecker {
+    }
+
+    class AppIdChecker {
+    }
+
+    class AppSigningChecker {
+    }
+
+    class VirtualLibraryChecker {
+    }
+
+    class IntegrityConfiguration {
+    }
+
+    class IntegrityResult {
+    }
+
+    class SecurityCheck {
+	    Secure
+	    Flagged
+	    Error
+    }
+
+	<<interface>> IntegrityAnalyzer
+	<<interface>> IntegrityChecker
+	<<interface>> DeviceIntegrityChecker
+	<<interface>> AppIntegrityChecker
+	<<interface>> VirtualizationIntegrityChecker
+	<<sealed>> SecurityCheck
+
+    Integrity --> IntegrityConfiguration
+    Integrity --> IntegrityCheckerRegistry
+    Integrity --> IntegrityAnalyzer
+    IntegrityAnalyzerImpl --> IntegrityChecker
+    IntegrityAnalyzer <|.. IntegrityAnalyzerImpl
+    IntegrityChecker <|-- DeviceIntegrityChecker
+    IntegrityChecker <|-- AppIntegrityChecker
+    IntegrityChecker <|-- VirtualizationIntegrityChecker
+    DeviceIntegrityChecker <|.. RootedDeviceChecker
+    DeviceIntegrityChecker <|.. CloningAppsChecker
+    AppIntegrityChecker <|.. AppIdChecker
+    AppIntegrityChecker <|.. AppSigningChecker
+    VirtualizationIntegrityChecker <|.. VirtualLibraryChecker
+    VirtualizationIntegrityChecker <|.. VirtualizationAppsChecker
+    IntegrityChecker --> IntegrityResult
+    IntegrityResult --> SecurityCheck
 ```
 
 ## Como usar
@@ -166,23 +203,19 @@ Integrity.instance.startDetections { result ->
 
 ## Validações disponíveis
 
-- `AppSignature`
-- `AppPackageName`
-- `DeveloperModeEnabled`
-- `Emulator`
-- `CloningAppsInstalled`
-- `Root`
-- `RootAppsInstalled`
-- `AdbEnabled`
-- `PackageVerifierDisabled`
-- `VirtualizationInstalledApps`
-- `InstallationDir`
-- `VirtualLibraryPresent`
+Lista **completa** dos tipos de validação atuais (`ValidationType`):
 
-## Stack
-
-- Kotlin
-- Coroutines
-- AndroidX Startup
-- JNI/C (CMake)
-- Gradle Kotlin DSL
+| ValidationType | Descrição |
+| --- | --- |
+| `AppSignature` | Verifica se a assinatura do app corresponde à assinatura esperada na configuração. |
+| `AppPackageName` | Valida se o package name instalado é o mesmo que o `appId` esperado. |
+| `DeveloperModeEnabled` | Identifica se o modo desenvolvedor está ativo no dispositivo. |
+| `Emulator` | Detecta execução em emulador Android. |
+| `CloningAppsInstalled` | Procura apps conhecidos de clonagem/dual apps instalados no dispositivo. |
+| `Root` | Detecta sinais de root por múltiplas estratégias (incluindo verificação nativa). |
+| `RootAppsInstalled` | Detecta presença de apps conhecidos de gerenciamento/root. |
+| `AdbEnabled` | Verifica se Android Debug Bridge (ADB) está habilitado. |
+| `PackageVerifierDisabled` | Indica se a verificação de pacotes/fontes foi desativada. |
+| `VirtualizationInstalledApps` | Detecta apps conhecidos de virtualização de ambiente. |
+| `InstallationDir` | Valida se o diretório de instalação do app é legítimo/esperado. |
+| `VirtualLibraryPresent` | Detecta bibliotecas associadas à virtualização/hooking no processo. |
