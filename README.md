@@ -6,7 +6,6 @@ Biblioteca Android para **análise de integridade do ambiente de execução**. O
 
 - Kotlin
 - Coroutines
-- AndroidX Startup
 - JNI/C (CMake)
 - Gradle Kotlin DSL
 
@@ -17,42 +16,37 @@ Este repositório possui dois módulos:
 - `:integrity` → biblioteca principal, com o motor de detecção.
 - `:app` → aplicativo de exemplo para demonstrar inicialização e consumo dos resultados.
 
-A entrada da biblioteca é feita por `Integrity.instance`, que:
+A instância da biblioteca é acessada por `Integrity.instance`, que:
 
-1. recebe `Context` + configuração;
+1. recebe um `Context` e a configuração inicial;
 2. monta um registro de checkers por domínio (device/app/virtualization);
 3. executa as validações em paralelo;
 4. retorna eventos assíncronos com `IntegrityResult`.
 
 ## Principais funcionalidades
 
-- **Integridade do dispositivo**: root (incluindo JNI), apps de root, emulador, apps de clonagem, ADB e modo desenvolvedor.
-- **Integridade de aplicação**: validação de `appId` e assinatura esperada.
+- **Integridade do dispositivo**: root, apps de root, emulador, apps de clonagem, ADB e modo desenvolvedor.
+- **Integridade de aplicação**: validação de `appId` e assinatura do aplicativo.
 - **Integridade de virtualização**: apps conhecidos, diretório de instalação e bibliotecas virtuais em memória.
 - **Execução assíncrona**: validações paralelas via coroutines.
-- **Observabilidade**: logging centralizado por `IntegrityLogger`.
 
 ## Escolhas de arquitetura
 
 ### 1) Orquestração central + checkers especializados
 
-A classe `Integrity` atua como fachada da biblioteca. Ela concentra inicialização e acionamento, mas delega as regras para checkers pequenos e focados.
+A classe `Integrity` atua como fachada da biblioteca. Ela concentra inicialização e acionamento, e delega as regras para checkers.
 
 - `Integrity` cria um `IntegrityCheckerRegistry`.
-- O registry agrega checkers por pacote funcional:
+- O registry agrega checkers:
   - `checker.app`
   - `checker.device`
   - `checker.virtualization`
 - `IntegrityAnalyzerImpl` executa todos os checkers habilitados em paralelo.
 
-**Benefício**: baixo acoplamento entre regras; fácil extensão com novos checkers.
-
-### 2) Contratos simples e coesos
+### 2) Contratos simples
 
 - `IntegrityChecker` define contrato único (`identifier` + `check()`), e padroniza saída com `checkResult()`.
 - Resultado de domínio é unificado em `IntegrityResult` + `SecurityCheck` (`Secure`, `Flagged`, `Error`).
-
-**Benefício**: fluxo previsível e estável para quem consome a API.
 
 ### 3) Separação por domínio de risco
 
@@ -62,22 +56,23 @@ As detecções são agrupadas por contexto de segurança:
 - **DeviceIntegrityChecker**
 - **VirtualizationIntegrityChecker**
 
-**Benefício**: legibilidade arquitetural e evolução independente por domínio.
-
 ### 4) Estratégia híbrida Kotlin + C/JNI
 
-Para checagens sensíveis (ex.: root e virtualização), o projeto combina Kotlin com código nativo (`CMake` + C).
+Para checagens sensíveis (ex.: root e virtualização), o projeto combina Kotlin com código nativo (`CMake` + C), bom objetivo de elevar a robustez de detecção contra técnicas simples de bypass.
 
-**Benefício**: eleva a robustez de detecção contra técnicas simples de bypass.
-
-## Implementações de Clean Code no projeto
+## Padrões utilizados no projeto
 
 - **Single Responsibility (SRP)**: cada checker trata uma regra específica (ex.: `AdbEnabledChecker`, `RootAppsChecker`, `VirtualLibraryChecker`).
 - **Nomes explícitos**: tipos e classes descrevem intenção (`IntegrityAnalyzer`, `IntegrityCheckerRegistry`, `ValidationType`).
 - **Contratos antes de implementação**: interfaces para analyzer/checkers favorecem substituição e testes.
 - **Modelagem de resultado expressiva**: `sealed interface SecurityCheck` evita estados ambíguos.
-- **Builder para configuração**: `IntegrityConfigurationBuilder` centraliza parâmetros e evita construtores complexos.
-- **Organização por pacotes de domínio**: reduz “classes utilitárias gigantes” e aumenta navegabilidade.
+- 
+- ## Estrutura do Projeto
+O projeto segue uma organização baseada em **Domínios**, estruturada da seguinte forma:
+
+* **Navegabilidade:** Localização rápida de arquivos relacionados a uma regra de negócio específica.
+* **Escalabilidade:** Facilidade para adicionar novos módulos sem afetar os existentes.
+* **Isolamento:** Cada pacote de domínio contém sua própria lógica, facilitando a manutenção.
 
 ## Diagrama de classes
 
@@ -171,6 +166,7 @@ direction TB
 ## Como usar
 
 ### Dependência
+Declarar a dependência no `build.gradle.kts` do aplicativo:
 
 ```kotlin
 dependencies {
@@ -179,6 +175,7 @@ dependencies {
 ```
 
 ### Inicialização
+Realizar a inicialização na Application, ou utilizar o [Android Initializer](https://developer.android.com/reference/androidx/startup/Initializer):
 
 ```kotlin
 Integrity.instance.init(context, "api-key") {
@@ -188,6 +185,7 @@ Integrity.instance.init(context, "api-key") {
 ```
 
 ### Execução das detecções
+Iniciar a detecteção de integridade:
 
 ```kotlin
 Integrity.instance.startDetections { result ->

@@ -38,6 +38,7 @@ class Integrity internal constructor() {
     ) {
         if (::context.isInitialized) {
             IntegrityLogger.instance.debug("Integrity already initialized. Skipping.")
+            return
         }
         this.configuration = buildConfiguration(apiKey = apiKey, block = config)
         if (configuration.apiKey.isBlank()) {
