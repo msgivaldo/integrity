@@ -203,15 +203,19 @@ Integrity.instance.startDetections { result ->
 
 ## Validações disponíveis
 
-- `AppSignature`: verifica se a assinatura do app corresponde à assinatura esperada na configuração.
-- `AppPackageName`: valida se o package name instalado é o mesmo que o `appId` esperado.
-- `DeveloperModeEnabled`: identifica se o modo desenvolvedor está ativo no dispositivo.
-- `Emulator`: detecta execução em emulador Android.
-- `CloningAppsInstalled`: procura apps conhecidos de clonagem/dual apps instalados no dispositivo.
-- `Root`: detecta sinais de root por múltiplas estratégias (incluindo verificação nativa).
-- `RootAppsInstalled`: detecta presença de apps conhecidos de gerenciamento/root.
-- `AdbEnabled`: verifica se Android Debug Bridge (ADB) está habilitado.
-- `PackageVerifierDisabled`: indica se a verificação de pacotes/fontes foi desativada.
-- `VirtualizationInstalledApps`: detecta apps conhecidos de virtualização de ambiente.
-- `InstallationDir`: valida se o diretório de instalação do app é legítimo/esperado.
-- `VirtualLibraryPresent`: detecta bibliotecas associadas à virtualização/hooking no processo.
+Lista **completa** dos tipos de validação atuais (`ValidationType`):
+
+| ValidationType | Descrição |
+| --- | --- |
+| `AppSignature` | Verifica se a assinatura do app corresponde à assinatura esperada na configuração. |
+| `AppPackageName` | Valida se o package name instalado é o mesmo que o `appId` esperado. |
+| `DeveloperModeEnabled` | Identifica se o modo desenvolvedor está ativo no dispositivo. |
+| `Emulator` | Detecta execução em emulador Android. |
+| `CloningAppsInstalled` | Procura apps conhecidos de clonagem/dual apps instalados no dispositivo. |
+| `Root` | Detecta sinais de root por múltiplas estratégias (incluindo verificação nativa). |
+| `RootAppsInstalled` | Detecta presença de apps conhecidos de gerenciamento/root. |
+| `AdbEnabled` | Verifica se Android Debug Bridge (ADB) está habilitado. |
+| `PackageVerifierDisabled` | Indica se a verificação de pacotes/fontes foi desativada. |
+| `VirtualizationInstalledApps` | Detecta apps conhecidos de virtualização de ambiente. |
+| `InstallationDir` | Valida se o diretório de instalação do app é legítimo/esperado. |
+| `VirtualLibraryPresent` | Detecta bibliotecas associadas à virtualização/hooking no processo. |
